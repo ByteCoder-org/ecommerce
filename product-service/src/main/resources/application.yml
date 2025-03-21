@@ -26,6 +26,8 @@ spring:
 
 springdoc:
   api-docs:
-    path: /api-docs
+    path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+  show-actuator: true
+  packages-to-scan: com.bytercoder.ecommerce.product.controller
