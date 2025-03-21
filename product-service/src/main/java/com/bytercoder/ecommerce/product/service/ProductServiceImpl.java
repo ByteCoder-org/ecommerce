@@ -3,6 +3,7 @@ package com.bytercoder.ecommerce.product.service;
 import com.bytercoder.ecommerce.product.dto.ProductRequest;
 import com.bytercoder.ecommerce.product.dto.ProductResponse;
 import com.bytercoder.ecommerce.product.exception.ProductNotFoundException;
+import com.bytercoder.ecommerce.product.mapper.ProductMapper;
 import com.bytercoder.ecommerce.product.model.Product;
 import com.bytercoder.ecommerce.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,91 +17,87 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class ProductService {
+public class ProductServiceImpl implements IProductService {
 
     private final ProductRepository productRepository;
+    private final ProductMapper productMapper;
 
+    @Override
     public Page<ProductResponse> getAllProducts(Pageable pageable) {
         return productRepository.findAll(pageable)
-                .map(this::mapToProductResponse);
+                .map(productMapper::mapToProductResponse);
     }
 
+    @Override
     public List<ProductResponse> getAllProducts() {
         return productRepository.findAll().stream()
-                .map(this::mapToProductResponse)
+                .map(productMapper::mapToProductResponse)
                 .collect(Collectors.toList());
     }
 
+    @Override
     public ProductResponse getProductById(Long id) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
-        return mapToProductResponse(product);
+        Product product = findProductByIdOrThrow(id);
+        return productMapper.mapToProductResponse(product);
     }
 
+    @Override
     public Page<ProductResponse> getProductsByCategory(String category, Pageable pageable) {
         return productRepository.findByCategory(category, pageable)
-                .map(this::mapToProductResponse);
+                .map(productMapper::mapToProductResponse);
     }
 
+    @Override
     public List<ProductResponse> getProductsByCategory(String category) {
         return productRepository.findByCategory(category).stream()
-                .map(this::mapToProductResponse)
+                .map(productMapper::mapToProductResponse)
                 .collect(Collectors.toList());
     }
 
+    @Override
     public Page<ProductResponse> searchProductsByName(String name, Pageable pageable) {
         return productRepository.findByNameContainingIgnoreCase(name, pageable)
-                .map(this::mapToProductResponse);
+                .map(productMapper::mapToProductResponse);
     }
 
+    @Override
     public List<ProductResponse> searchProductsByName(String name) {
         return productRepository.findByNameContainingIgnoreCase(name).stream()
-                .map(this::mapToProductResponse)
+                .map(productMapper::mapToProductResponse)
                 .collect(Collectors.toList());
     }
 
+    @Override
     public Page<ProductResponse> getAvailableProducts(Pageable pageable) {
         return productRepository.findByInventoryCountGreaterThan(0, pageable)
-                .map(this::mapToProductResponse);
+                .map(productMapper::mapToProductResponse);
     }
 
+    @Override
     public List<ProductResponse> getAvailableProducts() {
         return productRepository.findByInventoryCountGreaterThan(0).stream()
-                .map(this::mapToProductResponse)
+                .map(productMapper::mapToProductResponse)
                 .collect(Collectors.toList());
     }
 
+    @Override
     @Transactional
     public ProductResponse createProduct(ProductRequest productRequest) {
-        Product product = Product.builder()
-                .name(productRequest.getName())
-                .description(productRequest.getDescription())
-                .price(productRequest.getPrice())
-                .category(productRequest.getCategory())
-                .inventoryCount(productRequest.getInventoryCount())
-                .imageUrl(productRequest.getImageUrl())
-                .build();
-
+        Product product = productMapper.mapToEntity(productRequest);
         Product savedProduct = productRepository.save(product);
-        return mapToProductResponse(savedProduct);
+        return productMapper.mapToProductResponse(savedProduct);
     }
 
+    @Override
     @Transactional
     public ProductResponse updateProduct(Long id, ProductRequest productRequest) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
-
-        product.setName(productRequest.getName());
-        product.setDescription(productRequest.getDescription());
-        product.setPrice(productRequest.getPrice());
-        product.setCategory(productRequest.getCategory());
-        product.setInventoryCount(productRequest.getInventoryCount());
-        product.setImageUrl(productRequest.getImageUrl());
-
+        Product product = findProductByIdOrThrow(id);
+        productMapper.updateEntityFromRequest(product, productRequest);
         Product updatedProduct = productRepository.save(product);
-        return mapToProductResponse(updatedProduct);
+        return productMapper.mapToProductResponse(updatedProduct);
     }
 
+    @Override
     @Transactional
     public void deleteProduct(Long id) {
         if (!productRepository.existsById(id)) {
@@ -109,27 +106,17 @@ public class ProductService {
         productRepository.deleteById(id);
     }
 
+    @Override
     @Transactional
     public ProductResponse updateProductInventory(Long id, Integer quantity) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
-
+        Product product = findProductByIdOrThrow(id);
         product.setInventoryCount(quantity);
         Product updatedProduct = productRepository.save(product);
-        return mapToProductResponse(updatedProduct);
+        return productMapper.mapToProductResponse(updatedProduct);
     }
 
-    private ProductResponse mapToProductResponse(Product product) {
-        return ProductResponse.builder()
-                .id(product.getId())
-                .name(product.getName())
-                .description(product.getDescription())
-                .price(product.getPrice())
-                .category(product.getCategory())
-                .inventoryCount(product.getInventoryCount())
-                .imageUrl(product.getImageUrl())
-                .createdAt(product.getCreatedAt())
-                .updatedAt(product.getUpdatedAt())
-                .build();
+    private Product findProductByIdOrThrow(Long id) {
+        return productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
     }
 }

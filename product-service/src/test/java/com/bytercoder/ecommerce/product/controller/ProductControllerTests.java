@@ -3,7 +3,7 @@ package com.bytercoder.ecommerce.product.controller;
 import com.bytercoder.ecommerce.product.dto.ProductRequest;
 import com.bytercoder.ecommerce.product.dto.ProductResponse;
 import com.bytercoder.ecommerce.product.exception.ProductNotFoundException;
-import com.bytercoder.ecommerce.product.service.ProductService;
+import com.bytercoder.ecommerce.product.service.IProductService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,7 +39,7 @@ public class ProductControllerTests {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private ProductService productService;
+    private IProductService productService;
 
     @Test
     @DisplayName("Should return all products")

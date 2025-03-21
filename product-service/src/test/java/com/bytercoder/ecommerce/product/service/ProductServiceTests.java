@@ -3,6 +3,7 @@ package com.bytercoder.ecommerce.product.service;
 import com.bytercoder.ecommerce.product.dto.ProductRequest;
 import com.bytercoder.ecommerce.product.dto.ProductResponse;
 import com.bytercoder.ecommerce.product.exception.ProductNotFoundException;
+import com.bytercoder.ecommerce.product.mapper.ProductMapper;
 import com.bytercoder.ecommerce.product.model.Product;
 import com.bytercoder.ecommerce.product.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -32,8 +34,11 @@ public class ProductServiceTests {
     @Mock
     private ProductRepository productRepository;
 
+    @Spy
+    private ProductMapper productMapper = new ProductMapper();
+
     @InjectMocks
-    private ProductService productService;
+    private ProductServiceImpl productService;
 
     private Product product1;
     private Product product2;
@@ -89,6 +94,7 @@ public class ProductServiceTests {
         assertThat(result.get(0).getId()).isEqualTo(product1.getId());
         assertThat(result.get(1).getId()).isEqualTo(product2.getId());
         verify(productRepository, times(1)).findAll();
+        verify(productMapper, times(2)).mapToProductResponse(any(Product.class));
     }
 
     @Test
@@ -103,6 +109,7 @@ public class ProductServiceTests {
         // then
         assertThat(result).isEmpty();
         verify(productRepository, times(1)).findAll();
+        verify(productMapper, never()).mapToProductResponse(any(Product.class));
     }
 
     @Test
@@ -118,6 +125,7 @@ public class ProductServiceTests {
         assertThat(result.getId()).isEqualTo(product1.getId());
         assertThat(result.getName()).isEqualTo(product1.getName());
         verify(productRepository, times(1)).findById(1L);
+        verify(productMapper, times(1)).mapToProductResponse(product1);
     }
 
     @Test
@@ -129,6 +137,7 @@ public class ProductServiceTests {
         // when & then
         assertThrows(ProductNotFoundException.class, () -> productService.getProductById(999L));
         verify(productRepository, times(1)).findById(999L);
+        verify(productMapper, never()).mapToProductResponse(any(Product.class));
     }
 
     @Test
@@ -144,6 +153,7 @@ public class ProductServiceTests {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getCategory()).isEqualTo("Electronics");
         verify(productRepository, times(1)).findByCategory("Electronics");
+        verify(productMapper, times(1)).mapToProductResponse(product1);
     }
 
     @Test
@@ -158,6 +168,7 @@ public class ProductServiceTests {
         // then
         assertThat(result).hasSize(2);
         verify(productRepository, times(1)).findByNameContainingIgnoreCase("Test");
+        verify(productMapper, times(2)).mapToProductResponse(any(Product.class));
     }
 
     @Test
@@ -174,6 +185,7 @@ public class ProductServiceTests {
         assertThat(result.get(0).getInventoryCount()).isGreaterThan(0);
         assertThat(result.get(1).getInventoryCount()).isGreaterThan(0);
         verify(productRepository, times(1)).findByInventoryCountGreaterThan(0);
+        verify(productMapper, times(2)).mapToProductResponse(any(Product.class));
     }
 
     @Test
@@ -201,6 +213,7 @@ public class ProductServiceTests {
                 .updatedAt(ZonedDateTime.now())
                 .build();
 
+        when(productMapper.mapToEntity(productRequest)).thenReturn(newProduct);
         when(productRepository.save(any(Product.class))).thenReturn(savedProduct);
 
         // when
@@ -209,7 +222,9 @@ public class ProductServiceTests {
         // then
         assertThat(result.getId()).isEqualTo(savedProduct.getId());
         assertThat(result.getName()).isEqualTo(productRequest.getName());
+        verify(productMapper, times(1)).mapToEntity(productRequest);
         verify(productRepository, times(1)).save(any(Product.class));
+        verify(productMapper, times(1)).mapToProductResponse(savedProduct);
     }
 
     @Test
@@ -218,16 +233,17 @@ public class ProductServiceTests {
         // given
         when(productRepository.findById(1L)).thenReturn(Optional.of(product1));
         when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        doNothing().when(productMapper).updateEntityFromRequest(product1, productRequest);
 
         // when
         ProductResponse result = productService.updateProduct(1L, productRequest);
 
         // then
         assertThat(result.getId()).isEqualTo(product1.getId());
-        assertThat(result.getName()).isEqualTo(productRequest.getName());
-        assertThat(result.getDescription()).isEqualTo(productRequest.getDescription());
         verify(productRepository, times(1)).findById(1L);
+        verify(productMapper, times(1)).updateEntityFromRequest(product1, productRequest);
         verify(productRepository, times(1)).save(any(Product.class));
+        verify(productMapper, times(1)).mapToProductResponse(any(Product.class));
     }
 
     @Test
@@ -240,6 +256,8 @@ public class ProductServiceTests {
         assertThrows(ProductNotFoundException.class, () -> productService.updateProduct(999L, productRequest));
         verify(productRepository, times(1)).findById(999L);
         verify(productRepository, never()).save(any(Product.class));
+        verify(productMapper, never()).updateEntityFromRequest(any(Product.class), any(ProductRequest.class));
+        verify(productMapper, never()).mapToProductResponse(any(Product.class));
     }
 
     @Test
@@ -288,5 +306,6 @@ public class ProductServiceTests {
         assertThat(result.getInventoryCount()).isEqualTo(15);
         verify(productRepository, times(1)).findById(1L);
         verify(productRepository, times(1)).save(any(Product.class));
+        verify(productMapper, times(1)).mapToProductResponse(any(Product.class));
     }
 }

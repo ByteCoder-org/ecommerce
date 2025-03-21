@@ -2,7 +2,7 @@ package com.bytercoder.ecommerce.product.controller;
 
 import com.bytercoder.ecommerce.product.dto.ProductRequest;
 import com.bytercoder.ecommerce.product.dto.ProductResponse;
-import com.bytercoder.ecommerce.product.service.ProductService;
+import com.bytercoder.ecommerce.product.service.IProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Product API", description = "Operations related to products")
 public class ProductController {
 
-    private final ProductService productService;
+    private final IProductService productService;
 
     @GetMapping
     @Operation(summary = "Get all products with pagination")
