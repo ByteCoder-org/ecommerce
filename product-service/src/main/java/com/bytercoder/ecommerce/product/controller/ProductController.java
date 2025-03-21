@@ -7,11 +7,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/products")
@@ -22,9 +24,18 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    @Operation(summary = "Get all products")
-    public ResponseEntity<List<ProductResponse>> getAllProducts() {
-        return ResponseEntity.ok(productService.getAllProducts());
+    @Operation(summary = "Get all products with pagination")
+    public ResponseEntity<Page<ProductResponse>> getAllProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+
+        Sort.Direction sortDirection = direction.equalsIgnoreCase("desc") ?
+                Sort.Direction.DESC : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
+        return ResponseEntity.ok(productService.getAllProducts(pageable));
     }
 
     @GetMapping("/{id}")
@@ -34,21 +45,35 @@ public class ProductController {
     }
 
     @GetMapping("/category/{category}")
-    @Operation(summary = "Get products by category")
-    public ResponseEntity<List<ProductResponse>> getProductsByCategory(@PathVariable String category) {
-        return ResponseEntity.ok(productService.getProductsByCategory(category));
+    @Operation(summary = "Get products by category with pagination")
+    public ResponseEntity<Page<ProductResponse>> getProductsByCategory(
+            @PathVariable String category,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(productService.getProductsByCategory(category, pageable));
     }
 
     @GetMapping("/search")
-    @Operation(summary = "Search products by name")
-    public ResponseEntity<List<ProductResponse>> searchProductsByName(@RequestParam String name) {
-        return ResponseEntity.ok(productService.searchProductsByName(name));
+    @Operation(summary = "Search products by name with pagination")
+    public ResponseEntity<Page<ProductResponse>> searchProductsByName(
+            @RequestParam String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(productService.searchProductsByName(name, pageable));
     }
 
     @GetMapping("/available")
-    @Operation(summary = "Get products with inventory > 0")
-    public ResponseEntity<List<ProductResponse>> getAvailableProducts() {
-        return ResponseEntity.ok(productService.getAvailableProducts());
+    @Operation(summary = "Get products with inventory > 0 with pagination")
+    public ResponseEntity<Page<ProductResponse>> getAvailableProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(productService.getAvailableProducts(pageable));
     }
 
     @PostMapping

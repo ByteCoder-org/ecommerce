@@ -6,6 +6,8 @@ import com.bytercoder.ecommerce.product.exception.ProductNotFoundException;
 import com.bytercoder.ecommerce.product.model.Product;
 import com.bytercoder.ecommerce.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +19,11 @@ import java.util.stream.Collectors;
 public class ProductService {
 
     private final ProductRepository productRepository;
+
+    public Page<ProductResponse> getAllProducts(Pageable pageable) {
+        return productRepository.findAll(pageable)
+                .map(this::mapToProductResponse);
+    }
 
     public List<ProductResponse> getAllProducts() {
         return productRepository.findAll().stream()
@@ -30,16 +37,31 @@ public class ProductService {
         return mapToProductResponse(product);
     }
 
+    public Page<ProductResponse> getProductsByCategory(String category, Pageable pageable) {
+        return productRepository.findByCategory(category, pageable)
+                .map(this::mapToProductResponse);
+    }
+
     public List<ProductResponse> getProductsByCategory(String category) {
         return productRepository.findByCategory(category).stream()
                 .map(this::mapToProductResponse)
                 .collect(Collectors.toList());
     }
 
+    public Page<ProductResponse> searchProductsByName(String name, Pageable pageable) {
+        return productRepository.findByNameContainingIgnoreCase(name, pageable)
+                .map(this::mapToProductResponse);
+    }
+
     public List<ProductResponse> searchProductsByName(String name) {
         return productRepository.findByNameContainingIgnoreCase(name).stream()
                 .map(this::mapToProductResponse)
                 .collect(Collectors.toList());
+    }
+
+    public Page<ProductResponse> getAvailableProducts(Pageable pageable) {
+        return productRepository.findByInventoryCountGreaterThan(0, pageable)
+                .map(this::mapToProductResponse);
     }
 
     public List<ProductResponse> getAvailableProducts() {
