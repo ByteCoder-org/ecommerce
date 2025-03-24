@@ -4,7 +4,7 @@ import KeycloakService from '../services/keycloak';
 import './Header.css';
 
 function Header() {
-  const navigate = useNavigate();
+  useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
