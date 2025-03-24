@@ -32,19 +32,6 @@ function App() {
     }
   }, [initialized]);
 
-  // Define a private route that requires authentication
-  const PrivateRoute = ({ children }) => {
-    if (!keycloakReady) {
-      return <div className="loading-screen">Loading...</div>;
-    }
-    
-    if (!KeycloakService.isAuthenticated()) {
-      return <Navigate to="/login" />;
-    }
-    
-    return children;
-  };
-
   // Define an admin route that requires the admin role
   const AdminRoute = ({ children }) => {
     if (!keycloakReady) {
