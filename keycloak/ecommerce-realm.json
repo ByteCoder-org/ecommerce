@@ -1,0 +1,89 @@
+{
+  "realm": "ecommerce",
+  "enabled": true,
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "User",
+      "email": "admin@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["admin", "user"],
+      "clientRoles": {
+        "ecommerce-app": ["admin"]
+      }
+    },
+    {
+      "username": "user",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Regular",
+      "lastName": "User",
+      "email": "user@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "user",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["user"]
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "Regular user with basic permissions"
+      },
+      {
+        "name": "admin",
+        "description": "Administrator with full access"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "ecommerce-app",
+      "rootUrl": "http://localhost:3000",
+      "redirectUris": ["http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:3000"],
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "fullScopeAllowed": true
+    },
+    {
+      "clientId": "product-service",
+      "rootUrl": "http://localhost:8081",
+      "redirectUris": ["http://localhost:8081/*"],
+      "webOrigins": ["http://localhost:8081"],
+      "bearerOnly": true
+    }
+  ],
+  "scopeMappings": [
+    {
+      "client": "ecommerce-app",
+      "roles": ["admin", "user"]
+    }
+  ],
+  "clientScopeMappings": {
+    "ecommerce-app": [
+      {
+        "client": "product-service",
+        "roles": ["admin", "user"]
+      }
+    ]
+  }
+}

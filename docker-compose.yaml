@@ -11,18 +11,80 @@ services:
       - '5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    networks:
+      - ecommerce-network
+
+  keycloak-postgres:
+    image: 'postgres:latest'
+    container_name: keycloak-db
+    environment:
+      - 'POSTGRES_DB=keycloak'
+      - 'POSTGRES_PASSWORD=keycloak'
+      - 'POSTGRES_USER=keycloak'
+    volumes:
+      - keycloak-data:/var/lib/postgresql/data
+    networks:
+      - ecommerce-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1.4
+    container_name: keycloak
+    environment:
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://keycloak-postgres:5432/keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD=keycloak
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_HOSTNAME_STRICT=false
+    ports:
+      - "8080:8080"
+    depends_on:
+      - keycloak-postgres
+    command: start-dev
+    volumes:
+      - ./keycloak/ecommerce-realm.json:/tmp/ecommerce-realm.json
+    networks:
+      - ecommerce-network
+
+  keycloak-setup:
+    image: curlimages/curl:latest
+    volumes:
+      - ./keycloak/import-realm.sh:/import-realm.sh
+      - ./keycloak/ecommerce-realm.json:/tmp/ecommerce-realm.json
+    depends_on:
+      - keycloak
+    command: ["/bin/sh", "/import-realm.sh"]
+    networks:
+      - ecommerce-network
 
   product-service:
     build: ./product-service
     container_name: product-service
     depends_on:
       - postgres
+      - keycloak
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/ecommerce
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI=http://keycloak:8080/realms/ecommerce
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI=http://keycloak:8080/realms/ecommerce/protocol/openid-connect/certs
     ports:
       - "8081:8081"
+    networks:
+      - ecommerce-network
+
+  frontend:
+    build: ./frontend
+    container_name: ecommerce-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - product-service
+      - keycloak
+    networks:
+      - ecommerce-network
 
 networks:
   ecommerce-network:
@@ -30,3 +92,4 @@ networks:
 
 volumes:
   postgres-data:
+  keycloak-data:
