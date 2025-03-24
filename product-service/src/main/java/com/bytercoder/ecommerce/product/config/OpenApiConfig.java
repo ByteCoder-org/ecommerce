@@ -1,4 +1,4 @@
-package com.bytercoder.ecommerce.product.configuration;
+package com.bytercoder.ecommerce.product.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
