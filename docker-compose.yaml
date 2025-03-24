@@ -1,0 +1,32 @@
+services:
+
+  postgres:
+    image: 'postgres:latest'
+    container_name: ecommerce-db
+    environment:
+      - 'POSTGRES_DB=ecommerce'
+      - 'POSTGRES_PASSWORD=postgres'
+      - 'POSTGRES_USER=postgres'
+    ports:
+      - '5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  product-service:
+    build: ./product-service
+    container_name: product-service
+    depends_on:
+      - postgres
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/ecommerce
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+    ports:
+      - "8081:8081"
+
+networks:
+  ecommerce-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
