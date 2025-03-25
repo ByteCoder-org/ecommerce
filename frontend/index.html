@@ -109,12 +109,61 @@
 <script>
   const { createApp, ref, computed, onMounted } = Vue;
 
-  // Direct OAuth URLs
-  const AUTH_URL = 'http://localhost:8080/realms/ecommerce/protocol/openid-connect/auth';
-  const TOKEN_URL = 'http://localhost:8080/realms/ecommerce/protocol/openid-connect/token';
-  const LOGOUT_URL = 'http://localhost:8080/realms/ecommerce/protocol/openid-connect/logout';
+  // Get URLs from environment or use defaults
+  const API_GATEWAY_HOST = window.API_GATEWAY_URL || 'http://localhost:8000';
+  const KEYCLOAK_HOST = `${API_GATEWAY_HOST}/auth`; // Route through Kong
+
+  // Update the OAuth URLs to use Kong
+  const AUTH_URL = `${KEYCLOAK_HOST}/realms/ecommerce/protocol/openid-connect/auth`;
+  const TOKEN_URL = `${KEYCLOAK_HOST}/realms/ecommerce/protocol/openid-connect/token`;
+  const LOGOUT_URL = `${KEYCLOAK_HOST}/realms/ecommerce/protocol/openid-connect/logout`;
   const CLIENT_ID = 'ecommerce-app';
   const REDIRECT_URI = window.location.origin + window.location.pathname;
+
+  // For debugging - log the actual URLs being used
+  console.log('API Gateway Host:', API_GATEWAY_HOST);
+  console.log('Keycloak Host:', KEYCLOAK_HOST);
+  console.log('Auth URL:', AUTH_URL);
+  console.log('Token URL:', TOKEN_URL);
+
+  // Debug function to log auth details
+  function debugAuthToken(token) {
+    try {
+      if (!token) {
+        console.error('No access token available');
+        return;
+      }
+
+      const decoded = jwt_decode(token);
+      console.log('Decoded token:', decoded);
+
+      // Check realm roles
+      if (decoded.realm_access && decoded.realm_access.roles) {
+        console.log('Realm roles:', decoded.realm_access.roles);
+        const hasAdminRole = decoded.realm_access.roles.includes('admin');
+        console.log('Has admin role:', hasAdminRole);
+      } else {
+        console.error('No realm_access.roles found in token');
+      }
+
+      // Check resource access (client roles)
+      if (decoded.resource_access && decoded.resource_access['ecommerce-app']) {
+        console.log('Client roles:', decoded.resource_access['ecommerce-app'].roles);
+        const hasClientAdminRole = decoded.resource_access['ecommerce-app'].roles.includes('admin');
+        console.log('Has client admin role:', hasClientAdminRole);
+      } else {
+        console.log('No client roles found for ecommerce-app');
+      }
+
+      // Check token expiration
+      const currentTime = Math.floor(Date.now() / 1000);
+      const expiresIn = decoded.exp - currentTime;
+      console.log(`Token expires in: ${expiresIn} seconds`);
+
+    } catch (error) {
+      console.error('Error debugging token:', error);
+    }
+  }
 
   const app = createApp({
     setup() {
@@ -263,6 +312,9 @@
         localStorage.setItem('access_token', accessTokenValue);
         localStorage.setItem('refresh_token', refreshTokenValue);
 
+        // Debug the token
+        debugAuthToken(accessTokenValue);
+
         // Set authenticated state
         authenticated.value = true;
 
@@ -306,14 +358,19 @@
       const fetchProducts = async () => {
         try {
           loading.value = true;
+          console.log('Fetching products from:', `${API_GATEWAY_HOST}/api/v1/products`);
+          console.log('Auth headers:', getAuthHeader());
 
-          const response = await axios.get('http://localhost:8081/api/v1/products', {
+          const response = await axios.get(`${API_GATEWAY_HOST}/api/v1/products`, {
             headers: getAuthHeader()
           });
 
           products.value = response.data.content || [];
         } catch (error) {
           console.error('Error fetching products:', error);
+          if (error.response) {
+            console.error('Error response:', error.response.status, error.response.data);
+          }
         } finally {
           loading.value = false;
         }
@@ -321,13 +378,20 @@
 
       const createProduct = async () => {
         try {
+          // Debug the token before making the request
+          debugAuthToken(accessToken.value);
+
           loading.value = true;
 
-          await axios.post('http://localhost:8081/api/v1/products', newProduct.value, {
-            headers: {
-              ...getAuthHeader(),
-              'Content-Type': 'application/json'
-            }
+          // Log the actual headers being sent
+          const headers = {
+            ...getAuthHeader(),
+            'Content-Type': 'application/json'
+          };
+          console.log('Request headers:', headers);
+
+          await axios.post(`${API_GATEWAY_HOST}/api/v1/products`, newProduct.value, {
+            headers: headers
           });
 
           // Reset form
@@ -343,6 +407,9 @@
           fetchProducts();
         } catch (error) {
           console.error('Error creating product:', error);
+          if (error.response) {
+            console.error('Error response:', error.response.status, error.response.data);
+          }
           loading.value = false;
         }
       };
@@ -355,7 +422,7 @@
         try {
           loading.value = true;
 
-          await axios.delete(`http://localhost:8081/api/v1/products/${id}`, {
+          await axios.delete(`${API_GATEWAY_HOST}/api/v1/products/${id}`, {
             headers: getAuthHeader()
           });
 
@@ -378,7 +445,7 @@
         try {
           loading.value = true;
 
-          await axios.put(`http://localhost:8081/api/v1/products/${selectedProduct.value.id}`,
+          await axios.put(`${API_GATEWAY_HOST}/api/v1/products/${selectedProduct.value.id}`,
                   selectedProduct.value,
                   {
                     headers: {
