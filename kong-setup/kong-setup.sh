@@ -90,18 +90,6 @@ curl -s -X POST http://kong:8001/services/product-service/plugins \
   --data "config.anonymous=null" \
   -H "Content-Type: application/x-www-form-urlencoded"
 
-# Allow unauthenticated access to GET endpoints
-echo "Creating route for GET product endpoints..."
-curl -s -X POST http://kong:8001/routes \
-  --data "name=public-products" \
-  --data "methods[]=GET" \
-  --data "paths[]=/api/v1/products" \
-  --data "paths[]=/api/v1/products/search" \
-  --data "paths[]=/api/v1/products/category" \
-  --data "paths[]=/api/v1/products/available" \
-  --data "service.id=$(curl -s http://kong:8001/services/product-service | jq -r '.id')" \
-  -H "Content-Type: application/x-www-form-urlencoded"
-
 # Configure rate limiting
 echo "Setting up rate limiting..."
 curl -s -X POST http://kong:8001/services/product-service/plugins \

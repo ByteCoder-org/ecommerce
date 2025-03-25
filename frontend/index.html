@@ -46,7 +46,7 @@
           </div>
           <div>
             <label for="inventory">Inventory:</label>
-            <input id="inventory" type="number" v-model="newProduct.inventory" required>
+            <input id="inventory" type="number" v-model="newProduct.inventoryCount" required>
           </div>
           <div>
             <label for="category">Category:</label>
@@ -63,7 +63,7 @@
           <strong>{{ product.name }}</strong> - ${{ product.price }}
           <p>{{ product.description }}</p>
           <p>Category: {{ product.category }}</p>
-          <p>In Stock: {{ product.inventory }}</p>
+          <p>In Stock: {{ product.inventoryCount }}</p>
           <div v-if="isAdmin">
             <button @click="deleteProduct(product.id)">Delete</button>
             <button @click="selectProductForEdit(product)">Edit</button>
@@ -88,7 +88,7 @@
           </div>
           <div>
             <label for="edit-inventory">Inventory:</label>
-            <input id="edit-inventory" type="number" v-model="selectedProduct.inventory" required>
+            <input id="edit-inventory" type="number" v-model="selectedProduct.inventoryCount" required>
           </div>
           <div>
             <label for="edit-category">Category:</label>
@@ -399,7 +399,7 @@
             name: '',
             description: '',
             price: 0,
-            inventory: 0,
+            inventoryCount: 0,
             category: ''
           };
 

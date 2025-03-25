@@ -23,7 +23,8 @@ public class ProductController {
 
     private final IProductService productService;
 
-    @GetMapping
+    // Adding explicit path mapping for root products endpoint
+    @GetMapping(path = {"", "/"})
     @Operation(summary = "Get all products with pagination")
     public ResponseEntity<Page<ProductResponse>> getAllProducts(
             @RequestParam(defaultValue = "0") int page,
