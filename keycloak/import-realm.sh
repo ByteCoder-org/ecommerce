@@ -16,7 +16,7 @@ KC_TOKEN=""
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ -z "$KC_TOKEN" ]; do
   KC_TOKEN=$(curl -s -X POST \
-    "http://keycloak:8080/realms/master/protocol/openid-connect/token" \
+    "http://keycloak:8080/auth/realms/master/protocol/openid-connect/token" \
     -H "Content-Type: application/x-www-form-urlencoded" \
     -d "username=admin" \
     -d "password=admin" \
@@ -41,7 +41,7 @@ fi
 # Check if ecommerce realm already exists
 echo "$(date '+%Y-%m-%d %H:%M:%S') Checking if ecommerce realm exists..."
 REALM_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" \
-  "http://keycloak:8080/admin/realms/ecommerce" \
+  "http://keycloak:8080/auth/admin/realms/ecommerce" \
   -H "Authorization: Bearer $KC_TOKEN")
 
 if [ "$REALM_EXISTS" == "200" ] || [ "$REALM_EXISTS" == "404" ]; then
@@ -49,7 +49,7 @@ if [ "$REALM_EXISTS" == "200" ] || [ "$REALM_EXISTS" == "404" ]; then
     # Import the realm
     echo "$(date '+%Y-%m-%d %H:%M:%S') Importing ecommerce realm..."
     IMPORT_RESULT=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-      "http://keycloak:8080/admin/realms" \
+      "http://keycloak:8080/auth/admin/realms" \
       -H "Authorization: Bearer $KC_TOKEN" \
       -H "Content-Type: application/json" \
       --data-binary @/tmp/ecommerce-realm.json)
