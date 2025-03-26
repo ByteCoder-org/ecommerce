@@ -1,493 +1,118 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ecommerce Product Viewer - Hybrid Approach</title>
-  <!-- Vue.js -->
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-  <!-- Axios for API calls -->
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <!-- JWT Decoder -->
-  <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ecommerce Product Viewer - Hybrid Approach</title>
+    <!-- Vue.js -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Axios for API calls -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- JWT Decoder -->
+    <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 <div id="app">
-  <header>
-    <h1>Ecommerce Products</h1>
-    <div v-if="!authenticated">
-      <button @click="login">Login</button>
-    </div>
-    <div v-else>
-      <span>Welcome, {{ username }}</span>
-      <button @click="logout">Logout</button>
-    </div>
-  </header>
+    <header>
+        <h1>Ecommerce Products</h1>
+        <div v-if="!authenticated">
+            <button @click="login">Login</button>
+        </div>
+        <div v-else>
+            <span>Welcome, {{ username }}</span>
+            <button @click="logout">Logout</button>
+        </div>
+    </header>
 
-  <main>
-    <div v-if="loading">Loading...</div>
+    <main>
+        <div v-if="loading">Loading...</div>
 
-    <div v-else-if="authenticated">
-      <div v-if="isAdmin">
-        <h2>Admin Controls</h2>
-        <form @submit.prevent="createProduct">
-          <h3>Add New Product</h3>
-          <div>
-            <label for="name">Name:</label>
-            <input id="name" v-model="newProduct.name" required>
-          </div>
-          <div>
-            <label for="description">Description:</label>
-            <textarea id="description" v-model="newProduct.description" required></textarea>
-          </div>
-          <div>
-            <label for="price">Price:</label>
-            <input id="price" type="number" step="0.01" v-model="newProduct.price" required>
-          </div>
-          <div>
-            <label for="inventory">Inventory:</label>
-            <input id="inventory" type="number" v-model="newProduct.inventoryCount" required>
-          </div>
-          <div>
-            <label for="category">Category:</label>
-            <input id="category" v-model="newProduct.category" required>
-          </div>
-          <button type="submit">Add Product</button>
-        </form>
-      </div>
+        <div v-else-if="authenticated">
+            <div v-if="isAdmin">
+                <h2>Admin Controls</h2>
+                <form @submit.prevent="createProduct">
+                    <h3>Add New Product</h3>
+                    <div>
+                        <label for="name">Name:</label>
+                        <input id="name" v-model="newProduct.name" required>
+                    </div>
+                    <div>
+                        <label for="description">Description:</label>
+                        <textarea id="description" v-model="newProduct.description" required></textarea>
+                    </div>
+                    <div>
+                        <label for="price">Price:</label>
+                        <input id="price" type="number" step="0.01" v-model="newProduct.price" required>
+                    </div>
+                    <div>
+                        <label for="inventory">Inventory:</label>
+                        <input id="inventory" type="number" v-model="newProduct.inventoryCount" required>
+                    </div>
+                    <div>
+                        <label for="category">Category:</label>
+                        <input id="category" v-model="newProduct.category" required>
+                    </div>
+                    <button type="submit">Add Product</button>
+                </form>
+            </div>
 
-      <h2>Product List</h2>
-      <div v-if="products.length === 0">No products found.</div>
-      <ul v-else>
-        <li v-for="product in products" :key="product.id">
-          <strong>{{ product.name }}</strong> - ${{ product.price }}
-          <p>{{ product.description }}</p>
-          <p>Category: {{ product.category }}</p>
-          <p>In Stock: {{ product.inventoryCount }}</p>
-          <div v-if="isAdmin">
-            <button @click="deleteProduct(product.id)">Delete</button>
-            <button @click="selectProductForEdit(product)">Edit</button>
-          </div>
-        </li>
-      </ul>
+            <h2>Product List</h2>
+            <div v-if="products.length === 0">No products found.</div>
+            <ul v-else>
+                <li v-for="product in products" :key="product.id">
+                    <strong>{{ product.name }}</strong> - ${{ product.price }}
+                    <p>{{ product.description }}</p>
+                    <p>Category: {{ product.category }}</p>
+                    <p>In Stock: {{ product.inventoryCount }}</p>
+                    <div v-if="isAdmin">
+                        <button @click="deleteProduct(product.id)">Delete</button>
+                        <button @click="selectProductForEdit(product)">Edit</button>
+                    </div>
+                </li>
+            </ul>
 
-      <div v-if="isAdmin && selectedProduct">
-        <h3>Edit Product</h3>
-        <form @submit.prevent="updateProduct">
-          <div>
-            <label for="edit-name">Name:</label>
-            <input id="edit-name" v-model="selectedProduct.name" required>
-          </div>
-          <div>
-            <label for="edit-description">Description:</label>
-            <textarea id="edit-description" v-model="selectedProduct.description" required></textarea>
-          </div>
-          <div>
-            <label for="edit-price">Price:</label>
-            <input id="edit-price" type="number" step="0.01" v-model="selectedProduct.price" required>
-          </div>
-          <div>
-            <label for="edit-inventory">Inventory:</label>
-            <input id="edit-inventory" type="number" v-model="selectedProduct.inventoryCount" required>
-          </div>
-          <div>
-            <label for="edit-category">Category:</label>
-            <input id="edit-category" v-model="selectedProduct.category" required>
-          </div>
-          <button type="submit">Update</button>
-          <button type="button" @click="cancelEdit">Cancel</button>
-        </form>
-      </div>
-    </div>
+            <div v-if="isAdmin && selectedProduct">
+                <h3>Edit Product</h3>
+                <form @submit.prevent="updateProduct">
+                    <div>
+                        <label for="edit-name">Name:</label>
+                        <input id="edit-name" v-model="selectedProduct.name" required>
+                    </div>
+                    <div>
+                        <label for="edit-description">Description:</label>
+                        <textarea id="edit-description" v-model="selectedProduct.description" required></textarea>
+                    </div>
+                    <div>
+                        <label for="edit-price">Price:</label>
+                        <input id="edit-price" type="number" step="0.01" v-model="selectedProduct.price" required>
+                    </div>
+                    <div>
+                        <label for="edit-inventory">Inventory:</label>
+                        <input id="edit-inventory" type="number" v-model="selectedProduct.inventoryCount" required>
+                    </div>
+                    <div>
+                        <label for="edit-category">Category:</label>
+                        <input id="edit-category" v-model="selectedProduct.category" required>
+                    </div>
+                    <button type="submit">Update</button>
+                    <button type="button" @click="cancelEdit">Cancel</button>
+                </form>
+            </div>
+        </div>
 
-    <div v-else>
-      <p>Please log in to view and manage products.</p>
-    </div>
-  </main>
+        <div v-else>
+            <p>Please log in to view and manage products.</p>
+        </div>
+    </main>
 </div>
 
-<script>
-  const { createApp, ref, computed, onMounted } = Vue;
-
-  // Get URLs from environment or use defaults
-  const API_GATEWAY_HOST = window.API_GATEWAY_URL || 'http://localhost:8000';
-  const KEYCLOAK_HOST = `${API_GATEWAY_HOST}/auth`; // Route through Kong
-
-  // Update the OAuth URLs to use Kong
-  const AUTH_URL = `${KEYCLOAK_HOST}/realms/ecommerce/protocol/openid-connect/auth`;
-  const TOKEN_URL = `${KEYCLOAK_HOST}/realms/ecommerce/protocol/openid-connect/token`;
-  const LOGOUT_URL = `${KEYCLOAK_HOST}/realms/ecommerce/protocol/openid-connect/logout`;
-  const CLIENT_ID = 'ecommerce-app';
-  const REDIRECT_URI = window.location.origin + window.location.pathname;
-
-  // For debugging - log the actual URLs being used
-  console.log('API Gateway Host:', API_GATEWAY_HOST);
-  console.log('Keycloak Host:', KEYCLOAK_HOST);
-  console.log('Auth URL:', AUTH_URL);
-  console.log('Token URL:', TOKEN_URL);
-
-  // Debug function to log auth details
-  function debugAuthToken(token) {
-    try {
-      if (!token) {
-        console.error('No access token available');
-        return;
-      }
-
-      const decoded = jwt_decode(token);
-      console.log('Decoded token:', decoded);
-
-      // Check realm roles
-      if (decoded.realm_access && decoded.realm_access.roles) {
-        console.log('Realm roles:', decoded.realm_access.roles);
-        const hasAdminRole = decoded.realm_access.roles.includes('admin');
-        console.log('Has admin role:', hasAdminRole);
-      } else {
-        console.error('No realm_access.roles found in token');
-      }
-
-      // Check resource access (client roles)
-      if (decoded.resource_access && decoded.resource_access['ecommerce-app']) {
-        console.log('Client roles:', decoded.resource_access['ecommerce-app'].roles);
-        const hasClientAdminRole = decoded.resource_access['ecommerce-app'].roles.includes('admin');
-        console.log('Has client admin role:', hasClientAdminRole);
-      } else {
-        console.log('No client roles found for ecommerce-app');
-      }
-
-      // Check token expiration
-      const currentTime = Math.floor(Date.now() / 1000);
-      const expiresIn = decoded.exp - currentTime;
-      console.log(`Token expires in: ${expiresIn} seconds`);
-
-    } catch (error) {
-      console.error('Error debugging token:', error);
-    }
-  }
-
-  const app = createApp({
-    setup() {
-      // Authentication state
-      const authenticated = ref(false);
-      const username = ref('');
-      const userRoles = ref([]);
-      const accessToken = ref('');
-      const refreshToken = ref('');
-
-      // Products data
-      const products = ref([]);
-      const loading = ref(true);
-      const newProduct = ref({
-        name: '',
-        description: '',
-        price: 0,
-        inventory: 0,
-        category: ''
-      });
-      const selectedProduct = ref(null);
-
-      // Computed properties
-      const isAdmin = computed(() => userRoles.value.includes('ROLE_ADMIN'));
-
-      // Initialize on mount
-      onMounted(() => {
-        // Check URL for authorization code
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-
-        if (code) {
-          // Exchange code for tokens
-          exchangeCodeForTokens(code);
-
-          // Clean URL
-          const url = new URL(window.location);
-          url.search = '';
-          window.history.replaceState({}, document.title, url);
-        } else {
-          // Check for tokens in local storage
-          const storedToken = localStorage.getItem('access_token');
-          const storedRefresh = localStorage.getItem('refresh_token');
-
-          if (storedToken && storedRefresh) {
-            accessToken.value = storedToken;
-            refreshToken.value = storedRefresh;
-
-            // Verify token is still valid
-            try {
-              const decodedToken = jwt_decode(storedToken);
-              const currentTime = Math.floor(Date.now() / 1000);
-
-              if (decodedToken.exp > currentTime) {
-                handleSuccessfulAuth(storedToken, storedRefresh);
-              } else {
-                // Token expired, try to refresh
-                refreshAccessToken(storedRefresh);
-              }
-            } catch (error) {
-              console.error('Invalid token:', error);
-              clearTokens();
-              loading.value = false;
-            }
-          } else {
-            loading.value = false;
-          }
-        }
-      });
-
-      // Authentication methods
-      const login = () => {
-        const authUrl = new URL(AUTH_URL);
-        authUrl.searchParams.append('client_id', CLIENT_ID);
-        authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
-        authUrl.searchParams.append('response_type', 'code');
-        authUrl.searchParams.append('scope', 'openid');
-
-        window.location.href = authUrl.toString();
-      };
-
-      const logout = () => {
-        // Clear local tokens
-        clearTokens();
-
-        // Redirect to Keycloak logout
-        const logoutUrl = new URL(LOGOUT_URL);
-        logoutUrl.searchParams.append('client_id', CLIENT_ID);
-        logoutUrl.searchParams.append('post_logout_redirect_uri', REDIRECT_URI);
-
-        window.location.href = logoutUrl.toString();
-      };
-
-      const exchangeCodeForTokens = async (code) => {
-        try {
-          loading.value = true;
-
-          const params = new URLSearchParams();
-          params.append('grant_type', 'authorization_code');
-          params.append('client_id', CLIENT_ID);
-          params.append('code', code);
-          params.append('redirect_uri', REDIRECT_URI);
-
-          const response = await axios.post(TOKEN_URL, params, {
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded'
-            }
-          });
-
-          const { access_token, refresh_token } = response.data;
-          handleSuccessfulAuth(access_token, refresh_token);
-        } catch (error) {
-          console.error('Error exchanging code for tokens:', error);
-          loading.value = false;
-        }
-      };
-
-      const refreshAccessToken = async (refreshTokenValue) => {
-        try {
-          loading.value = true;
-
-          const params = new URLSearchParams();
-          params.append('grant_type', 'refresh_token');
-          params.append('client_id', CLIENT_ID);
-          params.append('refresh_token', refreshTokenValue);
-
-          const response = await axios.post(TOKEN_URL, params, {
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded'
-            }
-          });
-
-          const { access_token, refresh_token } = response.data;
-          handleSuccessfulAuth(access_token, refresh_token);
-        } catch (error) {
-          console.error('Error refreshing token:', error);
-          clearTokens();
-          loading.value = false;
-        }
-      };
-
-      const handleSuccessfulAuth = (accessTokenValue, refreshTokenValue) => {
-        // Store tokens
-        accessToken.value = accessTokenValue;
-        refreshToken.value = refreshTokenValue;
-        localStorage.setItem('access_token', accessTokenValue);
-        localStorage.setItem('refresh_token', refreshTokenValue);
-
-        // Debug the token
-        debugAuthToken(accessTokenValue);
-
-        // Set authenticated state
-        authenticated.value = true;
-
-        // Parse token for user info
-        try {
-          const decodedToken = jwt_decode(accessTokenValue);
-          username.value = decodedToken.preferred_username || 'User';
-
-          // Extract roles
-          if (decodedToken.realm_access && decodedToken.realm_access.roles) {
-            userRoles.value = decodedToken.realm_access.roles.map(role => 'ROLE_' + role.toUpperCase());
-          }
-
-          // Set up token refresh timer
-          const expiresIn = decodedToken.exp - Math.floor(Date.now() / 1000);
-          if (expiresIn > 0) {
-            // Refresh 30 seconds before expiration
-            setTimeout(() => refreshAccessToken(refreshTokenValue), (expiresIn - 30) * 1000);
-          }
-
-          // Fetch products
-          fetchProducts();
-        } catch (error) {
-          console.error('Error parsing token:', error);
-          clearTokens();
-          loading.value = false;
-        }
-      };
-
-      const clearTokens = () => {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        accessToken.value = '';
-        refreshToken.value = '';
-        authenticated.value = false;
-        username.value = '';
-        userRoles.value = [];
-      };
-
-      // API methods
-      const fetchProducts = async () => {
-        try {
-          loading.value = true;
-          console.log('Fetching products from:', `${API_GATEWAY_HOST}/api/v1/products`);
-          console.log('Auth headers:', getAuthHeader());
-
-          const response = await axios.get(`${API_GATEWAY_HOST}/api/v1/products`, {
-            headers: getAuthHeader()
-          });
-
-          products.value = response.data.content || [];
-        } catch (error) {
-          console.error('Error fetching products:', error);
-          if (error.response) {
-            console.error('Error response:', error.response.status, error.response.data);
-          }
-        } finally {
-          loading.value = false;
-        }
-      };
-
-      const createProduct = async () => {
-        try {
-          // Debug the token before making the request
-          debugAuthToken(accessToken.value);
-
-          loading.value = true;
-
-          // Log the actual headers being sent
-          const headers = {
-            ...getAuthHeader(),
-            'Content-Type': 'application/json'
-          };
-          console.log('Request headers:', headers);
-
-          await axios.post(`${API_GATEWAY_HOST}/api/v1/products`, newProduct.value, {
-            headers: headers
-          });
-
-          // Reset form
-          newProduct.value = {
-            name: '',
-            description: '',
-            price: 0,
-            inventoryCount: 0,
-            category: ''
-          };
-
-          // Refresh product list
-          fetchProducts();
-        } catch (error) {
-          console.error('Error creating product:', error);
-          if (error.response) {
-            console.error('Error response:', error.response.status, error.response.data);
-          }
-          loading.value = false;
-        }
-      };
-
-      const deleteProduct = async (id) => {
-        if (!confirm('Are you sure you want to delete this product?')) {
-          return;
-        }
-
-        try {
-          loading.value = true;
-
-          await axios.delete(`${API_GATEWAY_HOST}/api/v1/products/${id}`, {
-            headers: getAuthHeader()
-          });
-
-          fetchProducts();
-        } catch (error) {
-          console.error('Error deleting product:', error);
-          loading.value = false;
-        }
-      };
-
-      const selectProductForEdit = (product) => {
-        selectedProduct.value = { ...product };
-      };
-
-      const cancelEdit = () => {
-        selectedProduct.value = null;
-      };
-
-      const updateProduct = async () => {
-        try {
-          loading.value = true;
-
-          await axios.put(`${API_GATEWAY_HOST}/api/v1/products/${selectedProduct.value.id}`,
-                  selectedProduct.value,
-                  {
-                    headers: {
-                      ...getAuthHeader(),
-                      'Content-Type': 'application/json'
-                    }
-                  }
-          );
-
-          selectedProduct.value = null;
-          fetchProducts();
-        } catch (error) {
-          console.error('Error updating product:', error);
-          loading.value = false;
-        }
-      };
-
-      // Helper methods
-      const getAuthHeader = () => {
-        return accessToken.value ? { 'Authorization': `Bearer ${accessToken.value}` } : {};
-      };
-
-      return {
-        authenticated,
-        username,
-        isAdmin,
-        products,
-        loading,
-        newProduct,
-        selectedProduct,
-        login,
-        logout,
-        createProduct,
-        deleteProduct,
-        selectProductForEdit,
-        cancelEdit,
-        updateProduct
-      };
-    }
-  });
-
-  app.mount('#app');
-</script>
+<!-- Import Auth Service -->
+<script src="js/authService.js"></script>
+<!-- Import API Service -->
+<script src="js/apiService.js"></script>
+<!-- Main App Script -->
+<script src="js/app.js"></script>
 </body>
 </html>
