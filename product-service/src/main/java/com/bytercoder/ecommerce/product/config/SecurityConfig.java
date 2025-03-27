@@ -2,7 +2,7 @@ package com.bytercoder.ecommerce.product.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -21,12 +21,11 @@ import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // Create JWT converter
+        // Create JWT converter with proper role mapping
         JwtAuthenticationConverter jwtConverter = new JwtAuthenticationConverter();
         jwtConverter.setJwtGrantedAuthoritiesConverter(jwt -> {
             // Extract realm roles from Keycloak token
@@ -47,13 +46,24 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
+                        // Swagger/OpenAPI endpoints
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/api/v1/products").permitAll() // Allow GET for listing products
-                        .requestMatchers("/api/v1/products/{id}").permitAll() // Allow GET for retrieving individual products
-                        .requestMatchers("/api/v1/products/category/**").permitAll()
-                        .requestMatchers("/api/v1/products/search").permitAll()
-                        .requestMatchers("/api/v1/products/available").permitAll()
-                        .requestMatchers("/api/v1/products/**").hasRole("ADMIN") // All other operations require ADMIN role
+                        
+                        // Public READ endpoints - only GET methods
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products/{id}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products/category/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products/search").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products/available").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products/categories").permitAll()
+                        
+                        // Explicitly require ADMIN role for write operations
+                        .requestMatchers(HttpMethod.POST, "/api/v1/products/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/products/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/products/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/products/**").hasRole("ADMIN")
+                        
+                        // Any other request requires authentication
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
