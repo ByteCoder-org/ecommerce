@@ -1,5 +1,20 @@
 services:
 
+  # Service Registry
+  service-registry:
+    build: ./service-registry
+    container_name: service-registry
+    ports:
+      - "8761:8761"
+    networks:
+      - ecommerce-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:8761/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL for app
   postgres:
     image: 'postgres:latest'
     container_name: ecommerce-db
@@ -13,7 +28,13 @@ services:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - ecommerce-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
+  # Keycloak PostgreSQL
   keycloak-postgres:
     image: 'postgres:latest'
     container_name: keycloak-db
@@ -27,7 +48,13 @@ services:
       - keycloak-data:/var/lib/postgresql/data
     networks:
       - ecommerce-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
+  # Keycloak Auth Server
   keycloak:
     image: quay.io/keycloak/keycloak:26.1.4
     container_name: keycloak
@@ -48,118 +75,93 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - keycloak-postgres
+      keycloak-postgres:
+        condition: service_healthy
     command: start-dev
     volumes:
       - ./keycloak/ecommerce-realm.json:/tmp/ecommerce-realm.json
     networks:
       - ecommerce-network
 
+  keycloak-healthcheck:
+    image: curlimages/curl:latest
+    depends_on:
+      - keycloak
+    command: [ "sh", "-c", "until curl -s http://keycloak:8080/auth/ > /dev/null; do sleep 5; done; echo 'Keycloak is up!'" ]
+    networks:
+      - ecommerce-network
+
+  # Keycloak Setup
   keycloak-setup:
     image: curlimages/curl:latest
     volumes:
       - ./keycloak/import-realm.sh:/import-realm.sh
       - ./keycloak/ecommerce-realm.json:/tmp/ecommerce-realm.json
     depends_on:
-      - keycloak
+      keycloak-healthcheck:
+        condition: service_completed_successfully
     command: ["/bin/sh", "/import-realm.sh"]
     networks:
       - ecommerce-network
 
-  # Kong database
-  kong-database:
-    image: postgres:16
-    container_name: kong-database
-    environment:
-      POSTGRES_USER: kong
-      POSTGRES_DB: kong
-      POSTGRES_PASSWORD: kong
-    ports:
-      - "5434:5432"
-    volumes:
-      - kong-data:/var/lib/postgresql/data
-    networks:
-      - ecommerce-network
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "kong"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Kong migration
-  kong-migration:
-    image: kong:3.4
-    container_name: kong-migration
-    depends_on:
-      kong-database:
-        condition: service_healthy
-    environment:
-      KONG_DATABASE: postgres
-      KONG_PG_HOST: kong-database
-      KONG_PG_USER: kong
-      KONG_PG_PASSWORD: kong
-      KONG_PG_DATABASE: kong
-    command: kong migrations bootstrap
-    restart: on-failure
-    networks:
-      - ecommerce-network
-
-  # Kong service
-  kong:
-    image: kong:3.4
-    container_name: kong
-    depends_on:
-      kong-migration:
-        condition: service_completed_successfully
-      kong-database:
-        condition: service_healthy
-    environment:
-      KONG_DATABASE: postgres
-      KONG_PG_HOST: kong-database
-      KONG_PG_USER: kong
-      KONG_PG_PASSWORD: kong
-      KONG_PG_DATABASE: kong
-      KONG_DNS_ORDER: LAST,A,CNAME
-      KONG_PROXY_ACCESS_LOG: /dev/stdout
-      KONG_ADMIN_ACCESS_LOG: /dev/stdout
-      KONG_PROXY_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_LISTEN: 0.0.0.0:8001
-      KONG_ADMIN_GUI_URL: http://localhost:8002
-      KONG_PROXY_LISTEN: 0.0.0.0:8000, 0.0.0.0:8443 ssl
-    restart: on-failure
+  # API Gateway
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
     ports:
       - "8000:8000"
-      - "8443:8443"
-      - "8001:8001"
-      - "8002:8002"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      # Make sure hostname is set to the container name for proper registration
+      - EUREKA_INSTANCE_HOSTNAME=api-gateway
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=false
+      # Product service route with CORS headers
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].ID=product-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].URI=lb://product-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].PREDICATES[0]=Path=/api/v1/products/**
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].FILTERS[0]=AddResponseHeader=Access-Control-Allow-Origin, http://localhost:3000
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].FILTERS[1]=AddResponseHeader=Access-Control-Allow-Methods, GET,POST,PUT,DELETE,OPTIONS
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].FILTERS[2]=AddResponseHeader=Access-Control-Allow-Headers, Content-Type,Authorization
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].FILTERS[3]=AddResponseHeader=Access-Control-Allow-Credentials, true
+      # Keycloak route with CORS headers
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].ID=keycloak-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].URI=http://keycloak:8080
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].PREDICATES[0]=Path=/auth/**
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].FILTERS[0]=PreserveHostHeader
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].FILTERS[1]=AddResponseHeader=Access-Control-Allow-Origin, http://localhost:3000
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].FILTERS[2]=AddResponseHeader=Access-Control-Allow-Methods, GET,POST,PUT,DELETE,OPTIONS
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].FILTERS[3]=AddResponseHeader=Access-Control-Allow-Headers, Content-Type,Authorization,Origin
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].FILTERS[4]=AddResponseHeader=Access-Control-Allow-Credentials, true
+      # Frontend redirect route for OAuth flow
+      - SPRING_CLOUD_GATEWAY_ROUTES[2].ID=frontend-redirect
+      - SPRING_CLOUD_GATEWAY_ROUTES[2].URI=http://frontend:80
+      - SPRING_CLOUD_GATEWAY_ROUTES[2].PREDICATES[0]=Path=/oauth/callback,/callback,/silent-refresh
+      # OAuth config
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI=http://localhost:8000/auth/realms/ecommerce
+      - SERVER_PORT=8000
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      keycloak-healthcheck:
+        condition: service_completed_successfully
     networks:
       - ecommerce-network
     healthcheck:
-      test: ["CMD", "kong", "health"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "wget", "--spider", "http://localhost:8000/actuator/health"]
+      interval: 5s
+      timeout: 10s
       retries: 5
 
-  kong-setup:
-    build:
-      context: ./kong-setup
-      dockerfile: Dockerfile
-    container_name: kong-setup
-    depends_on:
-      - kong
-      - product-service
-      - keycloak
-    networks:
-      - ecommerce-network
-    restart: on-failure
-
+  # Product Service
   product-service:
     build: ./product-service
     container_name: product-service
     depends_on:
-      - postgres
-      - keycloak
+      postgres:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/ecommerce
       - SPRING_DATASOURCE_USERNAME=postgres
@@ -167,20 +169,26 @@ services:
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI=http://localhost:8000/auth/realms/ecommerce
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI=http://keycloak:8080/auth/realms/ecommerce/protocol/openid-connect/certs
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY=DEBUG
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB=DEBUG
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     ports:
       - "8081:8081"
     networks:
       - ecommerce-network
 
+  # Frontend
   frontend:
     build: ./frontend
     container_name: ecommerce-frontend
     ports:
       - "3000:80"
     depends_on:
-      - product-service
-      - keycloak
-      - kong
+      product-service:
+        condition: service_started
+      keycloak-healthcheck:
+        condition: service_completed_successfully
+#      api-gateway:
+#        condition: service_healthy
     networks:
       - ecommerce-network
 
@@ -191,4 +199,3 @@ networks:
 volumes:
   postgres-data:
   keycloak-data:
-  kong-data:
