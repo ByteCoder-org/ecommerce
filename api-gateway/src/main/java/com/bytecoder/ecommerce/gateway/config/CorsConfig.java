@@ -6,7 +6,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 public class CorsConfig {
@@ -15,19 +15,29 @@ public class CorsConfig {
     public CorsWebFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Set allowed origins - use a more permissive setting for development
-        config.setAllowedOrigins(Arrays.asList("http://localhost:3000", "null"));
+        // Set allowed origins
+        config.setAllowedOrigins(List.of("http://localhost:3000", "null"));
 
         // Configure allowed methods
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
 
         // Configure allowed headers - include all common headers
-        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With",
-                "Origin", "Accept", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
+        config.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "X-Requested-With",
+                "Origin",
+                "Accept",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers"
+        ));
 
         // Expose headers that clients are allowed to access
-        config.setExposedHeaders(Arrays.asList("Authorization", "Access-Control-Allow-Origin",
-                "Access-Control-Allow-Credentials"));
+        config.setExposedHeaders(List.of(
+                "Authorization",
+                "Access-Control-Allow-Origin",
+                "Access-Control-Allow-Credentials"
+        ));
 
         // Allow credentials like cookies
         config.setAllowCredentials(true);

@@ -22,7 +22,9 @@ public class SecurityConfig {
                         // Allow Keycloak paths without authentication
                         .pathMatchers("/auth/**").permitAll()
                         .pathMatchers("/auth/realms/ecommerce/protocol/openid-connect/**").permitAll()
-                        .pathMatchers("/actuator/**").permitAll()
+                        // Actuator endpoints - restrict to admin
+                        .pathMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .pathMatchers("/actuator/**").authenticated()
                         // Allow public GET endpoints for products without authentication
                         .pathMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
                         // Require authentication for modification operations
@@ -30,6 +32,10 @@ public class SecurityConfig {
                         .pathMatchers(HttpMethod.PUT, "/api/v1/products/**").authenticated()
                         .pathMatchers(HttpMethod.DELETE, "/api/v1/products/**").authenticated()
                         .pathMatchers(HttpMethod.PATCH, "/api/v1/products/**").authenticated()
+                        // React app or frontend routes
+                        .pathMatchers("/", "/static/**", "/index.html", "/favicon.ico", "/manifest.json").permitAll()
+                        // OAuth callback endpoints
+                        .pathMatchers("/oauth/callback", "/callback", "/silent-refresh").permitAll()
                         // Fallback rule
                         .anyExchange().authenticated()
                 )

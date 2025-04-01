@@ -8,6 +8,7 @@ services:
       - "8761:8761"
     networks:
       - ecommerce-network
+      - service-registry-network
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://localhost:8761/actuator/health"]
       interval: 5s
@@ -42,12 +43,10 @@ services:
       - 'POSTGRES_DB=keycloak'
       - 'POSTGRES_PASSWORD=keycloak'
       - 'POSTGRES_USER=keycloak'
-    ports:
-      - '5433:5432'
     volumes:
       - keycloak-data:/var/lib/postgresql/data
     networks:
-      - ecommerce-network
+      - keycloak-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U keycloak"]
       interval: 5s
@@ -72,8 +71,6 @@ services:
       - KC_HOSTNAME_URL=http://localhost:8000/auth
       - KC_SPI_HOSTNAME_DEFAULT_FRONTEND_URL=http://localhost:8000/auth
       - KC_HTTP_RELATIVE_PATH=/auth
-    ports:
-      - "8080:8080"
     depends_on:
       keycloak-postgres:
         condition: service_healthy
@@ -81,25 +78,14 @@ services:
     volumes:
       - ./keycloak/ecommerce-realm.json:/tmp/ecommerce-realm.json
     networks:
+      - keycloak-network
       - ecommerce-network
 
-  keycloak-healthcheck:
-    image: curlimages/curl:latest
-    depends_on:
-      - keycloak
-    command: [ "sh", "-c", "until curl -s http://keycloak:8080/auth/ > /dev/null; do sleep 5; done; echo 'Keycloak is up!'" ]
-    networks:
-      - ecommerce-network
-
-  # Keycloak Setup
   keycloak-setup:
     image: curlimages/curl:latest
     volumes:
       - ./keycloak/import-realm.sh:/import-realm.sh
       - ./keycloak/ecommerce-realm.json:/tmp/ecommerce-realm.json
-    depends_on:
-      keycloak-healthcheck:
-        condition: service_completed_successfully
     command: ["/bin/sh", "/import-realm.sh"]
     networks:
       - ecommerce-network
@@ -113,40 +99,19 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
-      # Make sure hostname is set to the container name for proper registration
       - EUREKA_INSTANCE_HOSTNAME=api-gateway
       - EUREKA_INSTANCE_PREFER_IP_ADDRESS=false
-      # Product service route with CORS headers
-      - SPRING_CLOUD_GATEWAY_ROUTES[0].ID=product-service
-      - SPRING_CLOUD_GATEWAY_ROUTES[0].URI=lb://product-service
-      - SPRING_CLOUD_GATEWAY_ROUTES[0].PREDICATES[0]=Path=/api/v1/products/**
-      - SPRING_CLOUD_GATEWAY_ROUTES[0].FILTERS[0]=AddResponseHeader=Access-Control-Allow-Origin, http://localhost:3000
-      - SPRING_CLOUD_GATEWAY_ROUTES[0].FILTERS[1]=AddResponseHeader=Access-Control-Allow-Methods, GET,POST,PUT,DELETE,OPTIONS
-      - SPRING_CLOUD_GATEWAY_ROUTES[0].FILTERS[2]=AddResponseHeader=Access-Control-Allow-Headers, Content-Type,Authorization
-      - SPRING_CLOUD_GATEWAY_ROUTES[0].FILTERS[3]=AddResponseHeader=Access-Control-Allow-Credentials, true
-      # Keycloak route with CORS headers
-      - SPRING_CLOUD_GATEWAY_ROUTES[1].ID=keycloak-service
-      - SPRING_CLOUD_GATEWAY_ROUTES[1].URI=http://keycloak:8080
-      - SPRING_CLOUD_GATEWAY_ROUTES[1].PREDICATES[0]=Path=/auth/**
-      - SPRING_CLOUD_GATEWAY_ROUTES[1].FILTERS[0]=PreserveHostHeader
-      - SPRING_CLOUD_GATEWAY_ROUTES[1].FILTERS[1]=AddResponseHeader=Access-Control-Allow-Origin, http://localhost:3000
-      - SPRING_CLOUD_GATEWAY_ROUTES[1].FILTERS[2]=AddResponseHeader=Access-Control-Allow-Methods, GET,POST,PUT,DELETE,OPTIONS
-      - SPRING_CLOUD_GATEWAY_ROUTES[1].FILTERS[3]=AddResponseHeader=Access-Control-Allow-Headers, Content-Type,Authorization,Origin
-      - SPRING_CLOUD_GATEWAY_ROUTES[1].FILTERS[4]=AddResponseHeader=Access-Control-Allow-Credentials, true
-      # Frontend redirect route for OAuth flow
-      - SPRING_CLOUD_GATEWAY_ROUTES[2].ID=frontend-redirect
-      - SPRING_CLOUD_GATEWAY_ROUTES[2].URI=http://frontend:80
-      - SPRING_CLOUD_GATEWAY_ROUTES[2].PREDICATES[0]=Path=/oauth/callback,/callback,/silent-refresh
-      # OAuth config
+      # Simplified configuration - let the app config handle routes
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI=http://localhost:8000/auth/realms/ecommerce
       - SERVER_PORT=8000
     depends_on:
       service-registry:
         condition: service_healthy
-      keycloak-healthcheck:
-        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
     networks:
       - ecommerce-network
+      - service-registry-network
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://localhost:8000/actuator/health"]
       interval: 5s
@@ -171,10 +136,9 @@ services:
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY=DEBUG
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB=DEBUG
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
-    ports:
-      - "8081:8081"
     networks:
       - ecommerce-network
+      - service-registry-network
 
   # Frontend
   frontend:
@@ -185,15 +149,20 @@ services:
     depends_on:
       product-service:
         condition: service_started
-      keycloak-healthcheck:
+      api-gateway:
+        condition: service_healthy
+      keycloak-setup:
         condition: service_completed_successfully
-#      api-gateway:
-#        condition: service_healthy
     networks:
       - ecommerce-network
 
 networks:
   ecommerce-network:
+    driver: bridge
+  service-registry-network:
+    driver: bridge
+    internal: true  # This network is not accessible from outside
+  keycloak-network:
     driver: bridge
 
 volumes:
