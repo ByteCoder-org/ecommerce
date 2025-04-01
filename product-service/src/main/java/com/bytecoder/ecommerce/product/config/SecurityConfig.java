@@ -10,9 +10,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Collection;
 import java.util.List;
@@ -42,13 +39,16 @@ public class SecurityConfig {
         });
 
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // Let API Gateway handle CORS
+                .cors(AbstractHttpConfigurer::disable)
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         // Swagger/OpenAPI endpoints
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        
+                        // Actuator endpoints - restricted to admins
+                        .requestMatchers("/actuator/**").hasRole("ADMIN")
+
                         // Public READ endpoints - only GET methods
                         .requestMatchers(HttpMethod.GET, "/api/v1/products").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/{id}").permitAll()
@@ -56,13 +56,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/search").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/available").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/categories").permitAll()
-                        
+
                         // Explicitly require ADMIN role for write operations
                         .requestMatchers(HttpMethod.POST, "/api/v1/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/products/**").hasRole("ADMIN")
-                        
+
                         // Any other request requires authentication
                         .anyRequest().authenticated()
                 )
@@ -71,18 +71,5 @@ public class SecurityConfig {
                 );
 
         return http.build();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("*"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        configuration.setExposedHeaders(List.of("Authorization"));
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
     }
 }

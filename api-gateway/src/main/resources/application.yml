@@ -21,7 +21,6 @@ spring:
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
 
   security:
-    # Temporarily disable resource server for debugging
     oauth2:
       resourceserver:
         jwt:
