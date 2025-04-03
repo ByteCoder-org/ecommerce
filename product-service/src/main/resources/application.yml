@@ -33,3 +33,11 @@ springdoc:
     path: /swagger-ui.html
   show-actuator: true
   packages-to-scan: com.bytercoder.ecommerce.product.controller
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    reactor.netty: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
