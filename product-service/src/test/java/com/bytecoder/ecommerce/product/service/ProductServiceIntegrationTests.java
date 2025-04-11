@@ -1,5 +1,6 @@
 package com.bytecoder.ecommerce.product.service;
 
+import com.bytecoder.ecommerce.product.config.TestSecurityConfig;
 import com.bytecoder.ecommerce.product.dto.ProductRequest;
 import com.bytecoder.ecommerce.product.dto.ProductResponse;
 import com.bytecoder.ecommerce.product.model.Product;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Import(TestSecurityConfig.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ProductServiceIntegrationTests {
 
