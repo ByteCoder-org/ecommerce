@@ -8,6 +8,7 @@ filebeat.autodiscover:
     - type: docker
       hints.enabled: true
       templates:
+        # Spring Boot services (JSON logs)
         - condition:
             contains:
               container.name: product-service
@@ -15,9 +16,13 @@ filebeat.autodiscover:
             - type: container
               paths:
                 - /var/lib/docker/containers/${data.docker.container.id}/*.log
-              json.keys_under_root: true
-              json.add_error_key: true
-              json.message_key: message
+              # Remove automatic JSON parsing - let Logstash handle it
+              processors:
+                - add_fields:
+                    target: service
+                    fields:
+                      type: backend
+                      name: product-service
         - condition:
             contains:
               container.name: api-gateway
@@ -25,9 +30,12 @@ filebeat.autodiscover:
             - type: container
               paths:
                 - /var/lib/docker/containers/${data.docker.container.id}/*.log
-              json.keys_under_root: true
-              json.add_error_key: true
-              json.message_key: message
+              processors:
+                - add_fields:
+                    target: service
+                    fields:
+                      type: backend
+                      name: api-gateway
         - condition:
             contains:
               container.name: service-registry
@@ -35,19 +43,13 @@ filebeat.autodiscover:
             - type: container
               paths:
                 - /var/lib/docker/containers/${data.docker.container.id}/*.log
-              json.keys_under_root: true
-              json.add_error_key: true
-              json.message_key: message
-        - condition:
-            contains:
-              container.name: keycloak
-          config:
-            - type: container
-              paths:
-                - /var/lib/docker/containers/${data.docker.container.id}/*.log
-              json.keys_under_root: true
-              json.add_error_key: true
-              json.message_key: message
+              processors:
+                - add_fields:
+                    target: service
+                    fields:
+                      type: backend
+                      name: service-registry
+        # Frontend (Nginx logs)
         - condition:
             contains:
               container.name: ecommerce-frontend
@@ -55,9 +57,40 @@ filebeat.autodiscover:
             - type: container
               paths:
                 - /var/lib/docker/containers/${data.docker.container.id}/*.log
-              json.keys_under_root: true
-              json.add_error_key: true
-              json.message_key: message
+              processors:
+                - add_fields:
+                    target: service
+                    fields:
+                      type: frontend
+                      name: ecommerce-frontend
+        # Keycloak logs
+        - condition:
+            contains:
+              container.name: keycloak
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              processors:
+                - add_fields:
+                    target: service
+                    fields:
+                      type: auth
+                      name: keycloak
+        # PostgreSQL logs
+        - condition:
+            contains:
+              container.name: postgres
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              processors:
+                - add_fields:
+                    target: service
+                    fields:
+                      type: database
+                      name: postgres
 
 processors:
   - add_docker_metadata:
