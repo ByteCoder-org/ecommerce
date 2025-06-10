@@ -33,3 +33,7 @@ springdoc:
     path: /swagger-ui.html
   show-actuator: true
   packages-to-scan: com.bytercoder.ecommerce.product.controller
+
+logging:
+  level:
+    root: info
