@@ -41,10 +41,6 @@ management:
   endpoint:
     health:
       show-details: always
-
 logging:
   level:
-    org.springframework.cloud.gateway: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.web: DEBUG
-    reactor.netty: INFO
+    root: info

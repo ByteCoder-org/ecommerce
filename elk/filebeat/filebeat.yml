@@ -1,0 +1,109 @@
+filebeat.config:
+  modules:
+    path: ${path.config}/modules.d/*.yml
+    reload.enabled: false
+
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      hints.enabled: true
+      templates:
+        # Spring Boot services (JSON logs)
+        - condition:
+            contains:
+              container.name: product-service
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              # Remove automatic JSON parsing - let Logstash handle it
+              processors:
+                - add_fields:
+                    target: service
+                    fields:
+                      type: backend
+                      name: product-service
+        - condition:
+            contains:
+              container.name: api-gateway
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              processors:
+                - add_fields:
+                    target: service
+                    fields:
+                      type: backend
+                      name: api-gateway
+        - condition:
+            contains:
+              container.name: service-registry
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              processors:
+                - add_fields:
+                    target: service
+                    fields:
+                      type: backend
+                      name: service-registry
+        # Frontend (Nginx logs)
+        - condition:
+            contains:
+              container.name: ecommerce-frontend
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              processors:
+                - add_fields:
+                    target: service
+                    fields:
+                      type: frontend
+                      name: ecommerce-frontend
+        # Keycloak logs
+        - condition:
+            contains:
+              container.name: keycloak
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              processors:
+                - add_fields:
+                    target: service
+                    fields:
+                      type: auth
+                      name: keycloak
+        # PostgreSQL logs
+        - condition:
+            contains:
+              container.name: postgres
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              processors:
+                - add_fields:
+                    target: service
+                    fields:
+                      type: database
+                      name: postgres
+
+processors:
+  - add_docker_metadata:
+      host: unix:///var/run/docker.sock
+  - add_host_metadata: ~
+
+output.logstash:
+  hosts: ["logstash:5044"]
+
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644
