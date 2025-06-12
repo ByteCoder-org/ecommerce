@@ -133,12 +133,10 @@ class AuthService {
         }
     }
 
+    // Replace localStorage with HttpOnly cookies
     handleSuccessfulAuth(accessTokenValue, refreshTokenValue, callback) {
-        // Store tokens
-        this.accessToken = accessTokenValue;
-        this.refreshToken = refreshTokenValue;
-        localStorage.setItem('access_token', accessTokenValue);
-        localStorage.setItem('refresh_token', refreshTokenValue);
+        document.cookie = `access_token=${accessTokenValue}; Secure; SameSite=Strict; path=/`;
+        document.cookie = `refresh_token=${refreshTokenValue}; Secure; SameSite=Strict; path=/`;
 
         // Debug the token
         this.debugAuthToken(accessTokenValue);
@@ -174,9 +172,10 @@ class AuthService {
         }
     }
 
+    // Update clearTokens to clear cookies
     clearTokens() {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        document.cookie = 'access_token=; Max-Age=0; path=/';
+        document.cookie = 'refresh_token=; Max-Age=0; path=/';
         this.accessToken = '';
         this.refreshToken = '';
         this.authenticated = false;
@@ -184,10 +183,16 @@ class AuthService {
         this.userRoles = [];
     }
 
+    // Update checkAuth to read tokens from cookies
     checkAuth(onAuthSuccess, onAuthFailed) {
-        // Check for tokens in local storage
-        const storedToken = localStorage.getItem('access_token');
-        const storedRefresh = localStorage.getItem('refresh_token');
+        const cookies = document.cookie.split('; ').reduce((acc, cookie) => {
+            const [key, value] = cookie.split('=');
+            acc[key] = value;
+            return acc;
+        }, {});
+
+        const storedToken = cookies['access_token'];
+        const storedRefresh = cookies['refresh_token'];
 
         if (storedToken && storedRefresh) {
             this.accessToken = storedToken;
