@@ -91,6 +91,20 @@ filebeat.autodiscover:
                     fields:
                       type: database
                       name: postgres
+        # Cart service logs
+        - condition:
+            contains:
+              container.name: cart-service
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              processors:
+                - add_fields:
+                    target: service
+                    fields:
+                      type: backend
+                      name: cart-service
 
 processors:
   - add_docker_metadata:

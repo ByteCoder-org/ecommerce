@@ -1,5 +1,4 @@
 services:
-
   # Service Registry
   service-registry:
     build: ./service-registry
@@ -8,12 +7,12 @@ services:
       - "8761:8761"
     networks:
       - ecommerce-network
-      - service-registry-network
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://localhost:8761/actuator/health"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 3
+
 
   # PostgreSQL for app
   postgres:
@@ -46,7 +45,7 @@ services:
     volumes:
       - keycloak-data:/var/lib/postgresql/data
     networks:
-      - keycloak-network
+      - ecommerce-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U keycloak"]
       interval: 5s
@@ -78,7 +77,6 @@ services:
     volumes:
       - ./keycloak/ecommerce-realm.json:/tmp/ecommerce-realm.json
     networks:
-      - keycloak-network
       - ecommerce-network
 
   keycloak-setup:
@@ -111,17 +109,18 @@ services:
         condition: service_started
     networks:
       - ecommerce-network
-      - service-registry-network
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://localhost:8000/actuator/health"]
-      interval: 5s
-      timeout: 10s
-      retries: 5
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   # Product Service
   product-service:
     build: ./product-service
     container_name: product-service
+    ports:
+      - "8081:8081"
     depends_on:
       postgres:
         condition: service_healthy
@@ -136,7 +135,6 @@ services:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
     networks:
       - ecommerce-network
-      - service-registry-network
 
   # Frontend
   frontend:
@@ -146,6 +144,8 @@ services:
       - "3000:80"
     depends_on:
       product-service:
+        condition: service_started
+      cart-service:
         condition: service_started
       api-gateway:
         condition: service_healthy
@@ -234,13 +234,41 @@ services:
       kibana:
         condition: service_healthy
 
+  # Cart Service
+  cart-service:
+    build: ./cart-service
+    container_name: cart-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      redis:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+    environment:
+      - SPRING_REDIS_HOST=redis
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI=http://localhost:8000/auth/realms/ecommerce
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI=http://keycloak:8080/auth/realms/ecommerce/protocol/openid-connect/certs
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+    networks:
+      - ecommerce-network
+
+  redis:
+    image: redis:6.2
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - ecommerce-network
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 networks:
   ecommerce-network:
-    driver: bridge
-  service-registry-network:
-    driver: bridge
-    internal: true  # This network is not accessible from outside
-  keycloak-network:
     driver: bridge
 
 volumes:

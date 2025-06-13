@@ -32,6 +32,10 @@ public class SecurityConfig {
                         .pathMatchers(HttpMethod.PUT, "/api/v1/products/**").authenticated()
                         .pathMatchers(HttpMethod.DELETE, "/api/v1/products/**").authenticated()
                         .pathMatchers(HttpMethod.PATCH, "/api/v1/products/**").authenticated()
+                        // Cart endpoints
+                        .pathMatchers(HttpMethod.GET, "/api/v1/cart/**").authenticated()
+                        .pathMatchers(HttpMethod.POST, "/api/v1/cart/**").authenticated()
+                        .pathMatchers(HttpMethod.DELETE, "/api/v1/cart/**").authenticated()
                         // React app or frontend routes
                         .pathMatchers("/", "/static/**", "/index.html", "/favicon.ico", "/manifest.json").permitAll()
                         // OAuth callback endpoints

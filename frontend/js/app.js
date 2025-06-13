@@ -9,6 +9,7 @@ const app = createApp({
         const authenticated = ref(false);
         const username = ref('');
         const products = ref([]);
+        const cart = ref([]);
         const loading = ref(true);
         const newProduct = ref({
             name: '',
@@ -54,6 +55,7 @@ const app = createApp({
                 () => {
                     updateAuthState();
                     fetchProducts();
+                    fetchCart();
                 },
                 () => {
                     loading.value = false;
@@ -69,6 +71,7 @@ const app = createApp({
                 () => {
                     updateAuthState();
                     fetchProducts();
+                    fetchCart();
                 },
                 () => {
                     loading.value = false;
@@ -163,12 +166,45 @@ const app = createApp({
             }
         };
 
+        // Fetch cart
+        const fetchCart = async () => {
+            try {
+                loading.value = true;
+                cart.value = await apiService.fetchCart();
+            } catch (error) {
+                console.error('Error fetching cart:', error);
+            } finally {
+                loading.value = false;
+            }
+        };
+
+        // Add to cart
+        const addToCart = async (productId, quantity) => {
+            try {
+                await apiService.addToCart(productId, quantity);
+                await fetchCart();
+            } catch (error) {
+                console.error('Error adding to cart:', error);
+            }
+        };
+
+        // Remove from cart
+        const removeFromCart = async (productId) => {
+            try {
+                await apiService.removeFromCart(productId);
+                await fetchCart();
+            } catch (error) {
+                console.error('Error removing from cart:', error);
+            }
+        };
+
         return {
             // State
             authenticated,
             username,
             isAdmin,
             products,
+            cart,
             loading,
             newProduct,
             selectedProduct,
@@ -180,7 +216,10 @@ const app = createApp({
             deleteProduct,
             selectProductForEdit,
             cancelEdit,
-            updateProduct
+            updateProduct,
+            fetchCart,
+            addToCart,
+            removeFromCart
         };
     }
 });

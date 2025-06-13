@@ -58,20 +58,38 @@
                 </form>
             </div>
 
+            <h2>Cart</h2>
+            <div v-if="cart && cart.length > 0">
+                <ul>
+                    <li v-for="item in cart" :key="item.productId">
+                        <strong>{{ item.productName }}</strong> - Quantity: {{ item.quantity }}
+                        <button @click="removeFromCart(item.productId)">Remove</button>
+                    </li>
+                </ul>
+            </div>
+            <div v-else>
+                Your cart is empty or not loaded yet.
+            </div>
+
             <h2>Product List</h2>
-            <div v-if="products.length === 0">No products found.</div>
-            <ul v-else>
-                <li v-for="product in products" :key="product.id">
-                    <strong>{{ product.name }}</strong> - ${{ product.price }}
-                    <p>{{ product.description }}</p>
-                    <p>Category: {{ product.category }}</p>
-                    <p>In Stock: {{ product.inventoryCount }}</p>
-                    <div v-if="isAdmin">
-                        <button @click="deleteProduct(product.id)">Delete</button>
-                        <button @click="selectProductForEdit(product)">Edit</button>
-                    </div>
-                </li>
-            </ul>
+            <div v-if="products && products.length > 0">
+                <ul>
+                    <li v-for="product in products" :key="product.id">
+                        <strong>{{ product.name }}</strong> - ${{ product.price }}
+                        <p>{{ product.description }}</p>
+                        <p>Category: {{ product.category }}</p>
+                        <p>In Stock: {{ product.inventoryCount }}</p>
+                        <button @click="addToCart(product.id, 1)">Add to Cart</button>
+                        <div v-if="isAdmin">
+                            <button @click="deleteProduct(product.id)">Delete</button>
+                            <button @click="selectProductForEdit(product)">Edit</button>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div v-else>
+                No products found or not loaded yet.
+            </div>
 
             <div v-if="isAdmin && selectedProduct">
                 <h3>Edit Product</h3>

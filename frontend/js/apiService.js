@@ -138,6 +138,69 @@ class ApiService {
       throw error;
     }
   }
+
+  async fetchCart() {
+    try {
+        const token = authService.accessToken;
+
+        // Validate token before decoding
+        if (!token) {
+            throw new Error('Access token is missing or undefined');
+        }
+
+        const decodedToken = jwt_decode(token); // Decode the token using jwt-decode
+        const userId = decodedToken.sub; // Extract the userId from the 'sub' claim
+
+        const response = await axios.get(`${this.apiUrl}/api/v1/cart/${userId}`, {
+            headers: authService.getAuthHeader()
+        });
+
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching cart:', error);
+        throw error;
+    }
+}
+
+  async addToCart(productId, quantity) {
+    try {
+        const token = authService.accessToken;
+        const decodedToken = jwt_decode(token);
+        const userId = decodedToken.sub;
+
+        const response = await axios.post(`${this.apiUrl}/api/v1/cart/${userId}`, {
+            productId,
+            quantity
+        }, {
+            headers: {
+                ...authService.getAuthHeader(),
+                'Content-Type': 'application/json'
+            }
+        });
+
+        return response.data;
+    } catch (error) {
+        console.error('Error adding to cart:', error);
+        throw error;
+    }
+}
+
+  async removeFromCart(productId) {
+    try {
+        const token = authService.accessToken;
+        const decodedToken = jwt_decode(token);
+        const userId = decodedToken.sub;
+
+        const response = await axios.delete(`${this.apiUrl}/api/v1/cart/${userId}/${productId}`, {
+            headers: authService.getAuthHeader()
+        });
+
+        return response.data;
+    } catch (error) {
+        console.error('Error removing from cart:', error);
+        throw error;
+    }
+  }
 }
 
 // Create a global instance

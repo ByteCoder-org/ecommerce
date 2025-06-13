@@ -116,6 +116,37 @@ li div {
     margin-top: 15px;
 }
 
+/* Cart Section Styles */
+.cart {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.cart h2 {
+    margin-top: 0;
+    color: #2c3e50;
+}
+
+.cart ul {
+    list-style: none;
+    padding: 0;
+}
+
+.cart li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.cart li:last-child {
+    border-bottom: none;
+}
+
 /* Loading State */
 .loading {
     text-align: center;

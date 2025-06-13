@@ -1,0 +1,26 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: cart-service
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://service-registry:8761/eureka/
+  instance:
+    preferIpAddress: true
+
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+  show-actuator: true
+  packages-to-scan: com.bytercoder.ecommerce.cart.controller
+
+logging:
+  level:
+    root: info
