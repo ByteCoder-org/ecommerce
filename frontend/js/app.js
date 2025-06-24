@@ -225,7 +225,6 @@ const app = createApp({
             selectProductForEdit,
             cancelEdit,
             updateProduct,
-            fetchCart,
             addToCart,
             removeFromCart
         };
