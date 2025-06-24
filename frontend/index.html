@@ -59,7 +59,7 @@
             </div>
 
             <h2>Cart</h2>
-            <div v-if="cart && cart.length > 0">
+            <div v-if="cart && cart.length">
                 <ul>
                     <li v-for="item in cart" :key="item.productId">
                         <strong>{{ item.productName }}</strong> - Quantity: {{ item.quantity }}

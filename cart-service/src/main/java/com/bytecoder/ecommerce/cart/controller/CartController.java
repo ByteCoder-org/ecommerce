@@ -29,6 +29,10 @@ public class CartController {
         log.info("Fetching cart for userId: {}", userId);
 
         Cart cart = cartService.getCart(userId);
+        if (cart == null) {
+            log.warn("Cart not found for userId: {}", userId);
+            return ResponseEntity.notFound().build();
+        }
         log.info("Retrieved cart with {} items for userId: {}", cart.getItems().size(), userId);
 
         return ResponseEntity.ok(cart);

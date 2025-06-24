@@ -171,6 +171,14 @@ const app = createApp({
             try {
                 loading.value = true;
                 cart.value = await apiService.fetchCart();
+
+                // Transform cart items
+                const transformedCart = Object.values(cart.value.items).map(item => ({
+                    productId: item.productId,
+                    productName: `Product ${item.productId}`, // Placeholder for product name
+                    quantity: item.quantity
+                }));
+                cart.value = transformedCart;
             } catch (error) {
                 console.error('Error fetching cart:', error);
             } finally {

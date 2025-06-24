@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: cart-service
+  redis:
+    host: redis
+    port: 6379
 
 eureka:
   client:
