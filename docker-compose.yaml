@@ -98,7 +98,7 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
       - EUREKA_INSTANCE_HOSTNAME=api-gateway
-      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=false
+      - EUREKA_INSTANCE_PREFERIPADDRESS=false
       # Simplified configuration - let the app config handle routes
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI=http://localhost:8000/auth/realms/ecommerce
       - SERVER_PORT=8000
@@ -133,6 +133,7 @@ services:
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI=http://localhost:8000/auth/realms/ecommerce
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI=http://keycloak:8080/auth/realms/ecommerce/protocol/openid-connect/certs
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - EUREKA_INSTANCE_PREFERIPADDRESS=false
     networks:
       - ecommerce-network
 
@@ -141,7 +142,7 @@ services:
     build: ./frontend
     container_name: ecommerce-frontend
     ports:
-      - "3000:80"
+      - "3000:3000"
     depends_on:
       product-service:
         condition: service_started
@@ -247,9 +248,11 @@ services:
         condition: service_healthy
     environment:
       - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI=http://localhost:8000/auth/realms/ecommerce
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI=http://keycloak:8080/auth/realms/ecommerce/protocol/openid-connect/certs
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - EUREKA_INSTANCE_PREFERIPADDRESS=false
     networks:
       - ecommerce-network
 
