@@ -20,11 +20,12 @@ interface CartProps {
   products: Product[];
   onClose: () => void;
   onUpdateCart: () => void;
-  onRemoveFromCart: (productId: string) => Promise<void>; // Added this property
+  onRemoveFromCart: (productId: string) => Promise<void>;
+  onUpdateQuantity: (productId: string, quantity: number) => Promise<void>;
   authToken: string;
 }
 
-export const Cart = ({ items, products, onClose, onUpdateCart, onRemoveFromCart, authToken }: CartProps) => {
+export const Cart = ({ items, products, onClose, onUpdateCart, onRemoveFromCart, onUpdateQuantity, authToken }: CartProps) => {
   const cartItems = Object.entries(items).map(([productId, item]) => {
     const product = products.find(p => p.id.toString() === productId);
     return product ? { ...item, product } : null;
@@ -65,11 +66,40 @@ export const Cart = ({ items, products, onClose, onUpdateCart, onRemoveFromCart,
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 w-8 p-0"
+                      onClick={async () => {
+                        try {
+                          const newQuantity = item.quantity - 1;
+                          if (newQuantity <= 0) {
+                            await onRemoveFromCart(item.productId);
+                          } else {
+                            await onUpdateQuantity(item.productId, newQuantity);
+                          }
+                          await onUpdateCart();
+                        } catch (error) {
+                          console.error('Error decreasing item quantity:', error);
+                        }
+                      }}
+                    >
                       <Minus className="h-3 w-3" />
                     </Button>
                     <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
-                    <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 w-8 p-0"
+                      onClick={async () => {
+                        try {
+                          await onUpdateQuantity(item.productId, item.quantity + 1);
+                          await onUpdateCart();
+                        } catch (error) {
+                          console.error('Error increasing item quantity:', error);
+                        }
+                      }}
+                    >
                       <Plus className="h-3 w-3" />
                     </Button>
                     <Button

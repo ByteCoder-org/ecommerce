@@ -148,6 +148,22 @@ const Index = () => {
     }
   };
 
+  const handleUpdateCartQuantity = async (productId: string, quantity: number) => {
+    console.log('🔄 Updating cart item quantity:', productId, 'to', quantity);
+    if (!isAuthenticated) {
+      console.log('❌ User not authenticated, cannot update cart');
+      return;
+    }
+
+    try {
+      await cartService.updateCartItemQuantity(productId, quantity);
+      console.log('✅ Cart item quantity updated successfully');
+      await loadCart();
+    } catch (error) {
+      console.error('❌ Error updating cart item quantity:', error);
+    }
+  };
+
   const handleLogin = () => {
     console.log('🔑 Login button clicked, redirecting to auth...');
     authService.login();
@@ -168,7 +184,7 @@ const Index = () => {
     console.log('✅ Admin panel should now be visible');
   };
 
-  const cartItemCount = Object.values(cartItems).reduce((total, item) => total + item.quantity, 0);
+  const cartItemCount = Object.values(cartItems).reduce((total: number, item) => total + (item as CartItem).quantity, 0);
 
   console.log('🖼️ Rendering Index component with state:');
   console.log('  - isAuthenticated:', isAuthenticated);
@@ -224,6 +240,7 @@ const Index = () => {
           }}
           onUpdateCart={loadCart}
           onRemoveFromCart={handleRemoveFromCart}
+          onUpdateQuantity={handleUpdateCartQuantity}
           authToken={authService.accessToken}
         />
       )}

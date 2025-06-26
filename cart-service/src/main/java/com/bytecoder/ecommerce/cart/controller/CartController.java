@@ -30,8 +30,9 @@ public class CartController {
 
         Cart cart = cartService.getCart(userId);
         if (cart == null) {
-            log.warn("Cart not found for userId: {}", userId);
-            return ResponseEntity.notFound().build();
+            log.info("Cart not found for userId: {}, returning empty cart", userId);
+            cart = new Cart();
+            cart.setUserId(userId);
         }
         log.info("Retrieved cart with {} items for userId: {}", cart.getItems().size(), userId);
 
@@ -60,6 +61,18 @@ public class CartController {
         log.info("Successfully removed item with productId: {} from cart for userId: {}", productId, userId);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Update Item Quantity", description = "Updates the quantity of an item in the shopping cart for a specific user")
+    @PutMapping("/{userId}/{productId}")
+    public ResponseEntity<Void> updateItemQuantity(@PathVariable String userId, @PathVariable String productId, @RequestBody CartItem item) {
+        setRequestContext();
+        log.info("Updating item quantity in cart for userId: {}. ProductId: {}, New Quantity: {}", userId, productId, item.getQuantity());
+
+        cartService.updateItemQuantity(userId, productId, item.getQuantity());
+        log.info("Successfully updated item quantity in cart for userId: {}", userId);
+
+        return ResponseEntity.ok().build();
     }
 
     /**

@@ -51,6 +51,24 @@ export class CartService {
     return { message: 'Item removed from cart successfully' }; // Handle empty response
   }
 
+  async updateCartItemQuantity(productId: string, quantity: number) {
+    const userId = this.getUserIdFromToken();
+    const response = await this.fetchWithAuth(`${this.API_BASE}/cart/${userId}/${productId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId, quantity })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update cart item quantity');
+    }
+
+    const responseText = await response.text();
+    if (!responseText) {
+      return { message: 'Cart item quantity updated successfully' };
+    }
+  }
+
   private getUserIdFromToken(): string {
     const token = this.getTokenFromCookie();
     if (!token || !token.includes('.')) {
