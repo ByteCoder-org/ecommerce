@@ -6,7 +6,6 @@ import { AdminPanel } from '@/components/AdminPanel';
 import { AuthService } from '@/services/AuthService';
 import { ProductService } from '@/services/ProductService';
 import { CartService } from '@/services/CartService';
-import { useToast } from '@/hooks/use-toast';
 
 interface CartItem {
   quantity: number;
@@ -25,7 +24,6 @@ const Index = () => {
   const [showCart, setShowCart] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   const authService = new AuthService();
   const productService = new ProductService();
@@ -101,11 +99,6 @@ const Index = () => {
       setProducts(productsData.content || []);
     } catch (error) {
       console.error('❌ Error loading products:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load products",
-        variant: "destructive",
-      });
     } finally {
       console.log('🏁 Products loading finished, setting loading to false');
       setLoading(false);
@@ -127,11 +120,6 @@ const Index = () => {
     console.log('🛒 Adding product to cart:', productId);
     if (!isAuthenticated) {
       console.log('❌ User not authenticated, cannot add to cart');
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to add items to cart",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -139,17 +127,8 @@ const Index = () => {
       await cartService.addToCart(productId.toString(), 1);
       console.log('✅ Product added to cart successfully');
       await loadCart();
-      toast({
-        title: "Success",
-        description: "Item added to cart",
-      });
     } catch (error) {
       console.error('❌ Error adding to cart:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add item to cart",
-        variant: "destructive",
-      });
     }
   };
 
@@ -157,11 +136,6 @@ const Index = () => {
     console.log('🗑️ Removing product from cart:', productId);
     if (!isAuthenticated) {
       console.log('❌ User not authenticated, cannot remove from cart');
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to remove items from cart",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -169,17 +143,8 @@ const Index = () => {
       await cartService.removeFromCart(productId);
       console.log('✅ Product removed from cart successfully');
       await loadCart();
-      toast({
-        title: "Success",
-        description: "Item removed from cart",
-      });
     } catch (error) {
       console.error('❌ Error removing from cart:', error);
-      toast({
-        title: "Error",
-        description: "Failed to remove item from cart",
-        variant: "destructive",
-      });
     }
   };
 

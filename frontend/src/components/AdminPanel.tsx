@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ProductService } from '@/services/ProductService';
-import { useToast } from '@/hooks/use-toast';
 
 interface AdminPanelProps {
   onClose: () => void;
@@ -40,7 +39,6 @@ export const AdminPanel = ({ onClose, onProductCreated, authToken: initialAuthTo
     inventoryCount: ''
   });
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
   const productService = new ProductService();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,11 +54,8 @@ export const AdminPanel = ({ onClose, onProductCreated, authToken: initialAuthTo
         inventoryCount: parseInt(formData.inventoryCount)
       }, authToken);
 
-      toast({
-        title: "Success",
-        description: "Product created successfully",
-      });
-
+      console.log('✅ Product created successfully');
+      onProductCreated();
       setFormData({
         name: '',
         description: '',
@@ -68,95 +63,67 @@ export const AdminPanel = ({ onClose, onProductCreated, authToken: initialAuthTo
         category: '',
         inventoryCount: ''
       });
-
-      onProductCreated();
     } catch (error) {
-      console.error('Error creating product:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create product",
-        variant: "destructive",
-      });
+      console.error('❌ Error creating product:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="flex items-center">
-            <Plus className="mr-2 h-5 w-5" />
-            Add New Product
-          </CardTitle>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
+    <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">
+      <Card className="w-full max-w-lg">
+        <CardHeader>
+          <CardTitle>Create New Product</CardTitle>
         </CardHeader>
-        
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="name">Product Name</Label>
+              <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => handleChange('name', e.target.value)}
-                required
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
-            
             <div>
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => handleChange('description', e.target.value)}
-                required
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
-            
             <div>
               <Label htmlFor="price">Price</Label>
               <Input
                 id="price"
                 type="number"
-                step="0.01"
                 value={formData.price}
-                onChange={(e) => handleChange('price', e.target.value)}
-                required
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
               />
             </div>
-            
             <div>
               <Label htmlFor="category">Category</Label>
               <Input
                 id="category"
                 value={formData.category}
-                onChange={(e) => handleChange('category', e.target.value)}
-                required
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               />
             </div>
-            
             <div>
-              <Label htmlFor="inventory">Inventory Count</Label>
+              <Label htmlFor="inventoryCount">Inventory Count</Label>
               <Input
-                id="inventory"
+                id="inventoryCount"
                 type="number"
                 value={formData.inventoryCount}
-                onChange={(e) => handleChange('inventoryCount', e.target.value)}
-                required
+                onChange={(e) => setFormData({ ...formData, inventoryCount: e.target.value })}
               />
             </div>
-            
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Product'}
-            </Button>
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+              <Button type="submit" variant="primary" disabled={loading}>Create</Button>
+            </div>
           </form>
         </CardContent>
       </Card>
