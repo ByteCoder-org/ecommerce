@@ -15,7 +15,12 @@ public class CartService {
     private CartRepository cartRepository;
 
     public Cart getCart(String userId) {
-        return cartRepository.findByUserId(userId);
+        Cart cart = cartRepository.findByUserId(userId);
+        if (cart != null) {
+            // Extend TTL when cart is accessed
+            cartRepository.extendTtl(userId);
+        }
+        return cart;
     }
 
     public void addItem(String userId, CartItem item) {

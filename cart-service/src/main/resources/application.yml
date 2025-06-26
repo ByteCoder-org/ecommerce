@@ -8,6 +8,12 @@ spring:
     host: redis
     port: 6379
 
+# Cart expiration configuration
+cart:
+  expiration:
+    # Cart expires after 7 days of inactivity (in seconds)
+    ttl: 604800
+
 eureka:
   client:
     serviceUrl:
